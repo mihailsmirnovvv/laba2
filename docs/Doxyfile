@@ -1,0 +1,4 @@
+PROJECT_NAME = "Matrix Library"
+OUTPUT_DIRECTORY = docs
+INPUT = src include
+GENERATE_HTML = YES
