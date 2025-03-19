@@ -106,3 +106,25 @@ Matrix *compute_expression(const Matrix *A, const Matrix *B, const Matrix *C, co
     return result;
 }
 
+double sum_diagonal(const Matrix *mat) {
+    if (!mat || mat->rows != mat->cols) return 0;
+    
+    double sum = 0;
+    for (int i = 0; i < mat->rows; i++) {
+        sum += mat->data[i][i];
+    }
+    return sum;
+}
+
+
+
+void fill_matrix(Matrix *mat, double value) {
+    if (!mat) return;
+    
+    for (int i = 0; i < mat->rows; i++) {
+        for (int j = 0; j < mat->cols; j++) {
+            mat->data[i][j] = value;
+        }
+    }
+}
+
