@@ -1,13 +1,10 @@
-# Compiler & options
 CC = gcc
 CFLAGS = -std=c11 -Wall -Wextra -Werror -g
 ASAN_FLAGS = -fsanitize=address
 
-# Libraries
 LIBS = -lm
 TEST_LIBS = -lcunit
 
-# Directories
 BUILD_DIR = build
 OBJ_DIR = $(BUILD_DIR)/objects
 EXEC_DIR = $(BUILD_DIR)/executables
@@ -15,18 +12,15 @@ TESTS_DIR = tests
 SRC_DIR = src
 INCLUDE_DIR = include
 
-# Source files
 SOURCES = $(wildcard $(SRC_DIR)/*.c)
 OBJECTS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SOURCES))
 TEST_SOURCES = $(wildcard $(TESTS_DIR)/test_*.c)
 TEST_OBJECTS = $(patsubst $(TESTS_DIR)/%.c, $(OBJ_DIR)/tests/%.o, $(TEST_SOURCES))
 
-# Targets
 TARGET = $(BUILD_DIR)/matrix.a
 TEST_EXEC = $(EXEC_DIR)/matrix_tests
 RUN_EXEC = $(EXEC_DIR)/matrix_run
 
-# Main targets
 all: $(TARGET)
 
 run: clean $(TARGET)
@@ -37,7 +31,6 @@ run: clean $(TARGET)
 $(TARGET): $(BUILD_DIR) $(OBJECTS)
 	ar -rcs $@ $(OBJECTS)
 
-# Test targets
 test: CFLAGS += -I$(INCLUDE_DIR)
 test: $(TARGET) $(TEST_EXEC)
 	./$(TEST_EXEC)
