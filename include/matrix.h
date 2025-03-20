@@ -16,6 +16,7 @@ void fill_matrix(Matrix *mat, double value);
 Matrix *transpose_matrix(const Matrix *A);
 Matrix *multiply_matrices(const Matrix *A, const Matrix *B);
 Matrix *add_matrices(const Matrix *A, const Matrix *B);
-
+Matrix *load_matrix(const char *filename);
+Matrix *calculate_expression(const char *fileA, const char *fileB, const char *fileC, const char *fileD);
 
 #endif // MATRIX_H

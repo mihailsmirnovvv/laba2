@@ -78,6 +78,22 @@ void test_free_matrix() {
     // Тут особо нечего проверять, но важно убедиться, что нет утечек памяти
 }
 
+void test_expression() {
+    Matrix *result = calculate_expression("test_A.txt", "test_B.txt", "test_C.txt", "test_D.txt");
+    CU_ASSERT_PTR_NOT_NULL(result);
+    CU_ASSERT_EQUAL(result->rows, 3);
+    CU_ASSERT_EQUAL(result->cols, 3);
+    CU_ASSERT_DOUBLE_EQUAL(result->data[0][0], 5.0, 1e-6);
+    CU_ASSERT_DOUBLE_EQUAL(result->data[0][1], 2.0, 1e-6);
+    CU_ASSERT_DOUBLE_EQUAL(result->data[0][2], 5.0, 1e-6);
+    CU_ASSERT_DOUBLE_EQUAL(result->data[1][0], 7.0, 1e-6);
+    CU_ASSERT_DOUBLE_EQUAL(result->data[1][1], 3.0, 1e-6);
+    CU_ASSERT_DOUBLE_EQUAL(result->data[1][2], 7.0, 1e-6);
+    free_matrix(result);
+}
+
+
+
 int main() {
     CU_initialize_registry();
     CU_pSuite suite = CU_add_suite("MatrixTests", 0, 0);
@@ -90,6 +106,9 @@ int main() {
     CU_add_test(suite, "Free Matrix", test_free_matrix);
     CU_basic_run_tests();
     CU_cleanup_registry();
+    CU_add_test(suite, "Matrix Expression", test_expression);
+
     return 0;
 }
+
 

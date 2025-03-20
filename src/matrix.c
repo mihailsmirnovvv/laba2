@@ -128,3 +128,131 @@ void fill_matrix(Matrix *mat, double value) {
     }
 }
 
+
+Matrix *load_matrix(const char *filename) {
+    printf("Trying to open file: %s\n", filename);
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        perror("Error opening file");
+        return NULL;
+    }
+
+    int rows, cols;
+    if (fscanf(file, "%d %d", &rows, &cols) != 2) {
+        perror("Invalid file format");
+        fclose(file);
+        return NULL;
+    }
+
+    Matrix *mat = create_matrix(rows, cols);
+    if (!mat) {
+        fclose(file);
+        return NULL;
+    }
+
+    for (int i = 0; i < rows; i++)
+        for (int j = 0; j < cols; j++)
+            if (fscanf(file, "%lf", &mat->data[i][j]) != 1) {
+                perror("Invalid matrix data");
+                free_matrix(mat);
+                fclose(file);
+                return NULL;
+            }
+
+    fclose(file);
+    return mat;
+}
+
+Matrix *calculate_expression(const char *fileA, const char *fileB, const char *fileC, const char *fileD) {
+    Matrix *A = load_matrix(fileA); 
+    Matrix *B = load_matrix(fileB);  
+    Matrix *C = load_matrix(fileC);  
+    Matrix *D = load_matrix(fileD);  
+
+
+
+    if (!A || !B || !C || !D) {
+        fprintf(stderr, "Error loading matrices.\n");
+        free_matrix(A);
+        free_matrix(B);
+        free_matrix(C);
+        free_matrix(D);
+        return NULL;
+    }
+
+    if (A == NULL || B == NULL || C == NULL || D == NULL) {
+        fprintf(stderr, "Error loading matrices.\n");
+        return NULL;
+    }
+    
+
+// Transpose A
+Matrix *AT = transpose_matrix(A);
+if (!AT) {
+    fprintf(stderr, "Error transposing A.\n");
+    free_matrix(A);
+    free_matrix(B);
+    free_matrix(C);
+    free_matrix(D);
+    return NULL;
+}
+printf("Matrix A^T:\n");
+print_matrix(AT);
+
+printf("Matrix B:\n");
+print_matrix(B);
+
+// Multiply AT * B
+Matrix *ATB = multiply_matrices(AT, B);
+if (!ATB) {
+    fprintf(stderr, "Error multiplying AT * B.\n");
+    free_matrix(A);
+    free_matrix(B);
+    free_matrix(C);
+    free_matrix(D);
+    free_matrix(AT);
+    return NULL;
+}
+
+// Проверка размеров перед выводом
+printf("Size of (A^T * B): %dx%d\n", ATB->rows, ATB->cols);
+printf("Size of C: %dx%d\n", C->rows, C->cols);
+printf("Result of A^T * B:\n");
+print_matrix(ATB);
+
+printf("Matrix C:\n");
+print_matrix(C);
+
+// Subtract C
+Matrix *ATB_C = subtract_matrices(ATB, C);
+if (!ATB_C) {
+    fprintf(stderr, "Error subtracting C.\n");
+    free_matrix(A);
+    free_matrix(B);
+    free_matrix(C);
+    free_matrix(D);
+    free_matrix(AT);
+    free_matrix(ATB);
+    return NULL;
+}
+
+// Add D
+printf("Matrix D:\n");
+print_matrix(D);
+
+Matrix *result = add_matrices(ATB_C, D);
+if (!result) {
+    fprintf(stderr, "Error adding D.\n");
+}
+
+// Free intermediate matrices
+free_matrix(A);
+free_matrix(B);
+free_matrix(C);
+free_matrix(D);
+free_matrix(AT);
+free_matrix(ATB);
+free_matrix(ATB_C);
+
+return result;
+}
