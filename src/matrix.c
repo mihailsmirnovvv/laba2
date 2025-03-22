@@ -186,7 +186,7 @@ Matrix *calculate_expression(const char *fileA, const char *fileB, const char *f
     }
     
 
-// Transpose A
+// Транспонируем A
 Matrix *AT = transpose_matrix(A);
 if (!AT) {
     fprintf(stderr, "Error transposing A.\n");
@@ -198,11 +198,14 @@ if (!AT) {
 }
 printf("Matrix A^T:\n");
 print_matrix(AT);
+printf("Size of A^T: %dx%d\n", AT->rows, AT->cols);
 
+// Выводим матрицу B
 printf("Matrix B:\n");
 print_matrix(B);
+printf("Size of B: %dx%d\n", B->rows, B->cols);
 
-// Multiply AT * B
+// Умножаем A^T * B
 Matrix *ATB = multiply_matrices(AT, B);
 if (!ATB) {
     fprintf(stderr, "Error multiplying AT * B.\n");
@@ -214,19 +217,23 @@ if (!ATB) {
     return NULL;
 }
 
-// Проверка размеров перед выводом
+// Проверяем размеры
 printf("Size of (A^T * B): %dx%d\n", ATB->rows, ATB->cols);
 printf("Size of C: %dx%d\n", C->rows, C->cols);
+printf("Size of D: %dx%d\n", D->rows, D->cols);
+
+// Выводим результат умножения
 printf("Result of A^T * B:\n");
 print_matrix(ATB);
 
+// Выводим матрицу C перед вычитанием
 printf("Matrix C:\n");
 print_matrix(C);
 
-// Subtract C
+// Вычитаем C
 Matrix *ATB_C = subtract_matrices(ATB, C);
 if (!ATB_C) {
-    fprintf(stderr, "Error subtracting C.\n");
+    fprintf(stderr, "Error subtracting C. Size mismatch?\n");
     free_matrix(A);
     free_matrix(B);
     free_matrix(C);
@@ -236,16 +243,17 @@ if (!ATB_C) {
     return NULL;
 }
 
-// Add D
+// Выводим D перед сложением
 printf("Matrix D:\n");
 print_matrix(D);
 
+// Складываем с D
 Matrix *result = add_matrices(ATB_C, D);
 if (!result) {
-    fprintf(stderr, "Error adding D.\n");
+    fprintf(stderr, "Error adding D. Size mismatch?\n");
 }
 
-// Free intermediate matrices
+// Освобождаем память
 free_matrix(A);
 free_matrix(B);
 free_matrix(C);
