@@ -40,14 +40,14 @@ void test_add_matrices() {
     free_matrix(C);
 }
 
-void test_multiply_matrices() {
+void test_dot_matrices() {
     Matrix *A = create_matrix(2, 2);
     Matrix *B = create_matrix(2, 2);
     A->data[0][0] = 1; A->data[0][1] = 2;
     A->data[1][0] = 3; A->data[1][1] = 4;
     B->data[0][0] = 2; B->data[0][1] = 0;
     B->data[1][0] = 1; B->data[1][1] = 2;
-    Matrix *C = multiply_matrices(A, B);
+    Matrix *C = dot_matrices(A, B);
     CU_ASSERT_PTR_NOT_NULL(C);
     CU_ASSERT_EQUAL(C->data[0][0], 4);
     CU_ASSERT_EQUAL(C->data[0][1], 4);
@@ -101,7 +101,7 @@ int main() {
     CU_add_test(suite, "Fill Matrix", test_fill_matrix);
     CU_add_test(suite, "Sum Diagonal", test_sum_diagonal);
     CU_add_test(suite, "Add Matrices", test_add_matrices);
-    CU_add_test(suite, "Multiply Matrices", test_multiply_matrices);
+    CU_add_test(suite, "Dot Matrices", test_dot_matrices);
     CU_add_test(suite, "Transpose Matrix", test_transpose_matrix);
     CU_add_test(suite, "Free Matrix", test_free_matrix);
     CU_basic_run_tests();
