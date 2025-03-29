@@ -12,10 +12,11 @@ TESTS_DIR = tests
 SRC_DIR = src
 INCLUDE_DIR = include
 
-SOURCES = $(filter-out $(SRC_DIR)/main.c, $(wildcard $(SRC_DIR)/*.c))  # Исключаем main.c
+SOURCES = $(wildcard $(SRC_DIR)/*.c)
 OBJECTS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SOURCES))
-TEST_SOURCES = $(wildcard $(TESTS_DIR)/test_*.c)
-TEST_OBJECTS = $(patsubst $(TESTS_DIR)/%.c, $(OBJ_DIR)/tests/%.o, $(TEST_SOURCES))
+
+# Исключаем main.o, чтобы он не попал в библиотеку
+OBJECTS := $(filter-out $(OBJ_DIR)/main.o, $(OBJECTS))
 
 LIBRARY = $(BUILD_DIR)/matrix.a
 TEST_EXEC = $(EXEC_DIR)/matrix_tests
@@ -23,56 +24,55 @@ RUN_EXEC = $(EXEC_DIR)/matrix_run
 
 all: $(LIBRARY)
 
-# Компиляция и запуск основного кода
-run: clean $(LIBRARY)
-	@mkdir -p $(EXEC_DIR)
-	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) $(SRC_DIR)/main.c $(LIBRARY) -o $(RUN_EXEC) $(LIBS)
-	./$(RUN_EXEC)
-
-# Создание статической библиотеки без main.o
 $(LIBRARY): $(BUILD_DIR) $(OBJECTS)
+	@mkdir -p $(dir $@)
 	ar -rcs $@ $(OBJECTS)
 
-# Компиляция и запуск тестов
+run: clean $(LIBRARY) $(OBJ_DIR)/main.o
+	@mkdir -p $(EXEC_DIR)
+	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) $(OBJ_DIR)/main.c $(LIBRARY) -o $(RUN_EXEC) $(LIBS)
+	./$(RUN_EXEC)
+
+# Компиляция объектов
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -c $< -o $@
+
+# Создание папки build
+$(BUILD_DIR):
+	@mkdir -p $(BUILD_DIR)
+
+# Запуск тестов
 test: CFLAGS += -I$(INCLUDE_DIR)
 test: $(LIBRARY) $(TEST_EXEC)
 	./$(TEST_EXEC)
 
 $(TEST_EXEC): $(TEST_OBJECTS) $(LIBRARY)
 	@mkdir -p $(EXEC_DIR)
-	$(CC) $(CFLAGS) $^ -o $@ $(LIBS) $(TEST_LIBS)
+	$(CC) $(CFLAGS) $(TEST_OBJECTS) $(LIBRARY) -o $@ $(LIBS) $(TEST_LIBS)
 
-# Компиляция объектных файлов для тестов
 $(OBJ_DIR)/tests/%.o: $(TESTS_DIR)/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -c $< -o $@
 
-# Компиляция объектных файлов для библиотеки (без main.c)
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -c $< -o $@
-
-$(BUILD_DIR):
-	@mkdir -p $(BUILD_DIR)
-
-# Проверка утечек памяти с Valgrind
+# Проверка утечек памяти
 valgrind: $(TEST_EXEC)
 	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all ./$(TEST_EXEC)
 
-# Анализ кода cppcheck
+# Анализ кода
 cppcheck:
 	cppcheck --enable=all --std=c11 -I$(INCLUDE_DIR) $(SOURCES) \
 	--suppress=missingIncludeSystem --suppress=unusedFunction --error-exitcode=1
 
-# Автоформатирование кода с clang-format
+# Форматирование кода
 format:
 	@clang-format -i $(wildcard src/*.c) $(wildcard include/*.h)
 
-# Генерация документации Doxygen
+# Генерация документации
 docs:
 	doxygen Doxyfile
 
-# Очистка сборки
+# Очистка
 clean:
 	rm -rf $(BUILD_DIR)
 

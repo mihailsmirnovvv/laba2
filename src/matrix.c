@@ -1,101 +1,45 @@
-#include "../include/matrix.h"
+#include "matrix.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
-Matrix *create_matrix(int rows, int cols) {
-    Matrix *mat = (Matrix *)malloc(sizeof(Matrix));
-    if (!mat) return NULL;
-
-    mat->rows = rows;
-    mat->cols = cols;
-    mat->data = (double **)malloc(rows * sizeof(double *));
-    if (!mat->data) {
-        free(mat);
-        return NULL;
-    }
-
-    for (int iter = 0; iter < rows; iter++) {
-        mat->data[iter] = (double *)calloc(cols, sizeof(double));
-        if (!mat->data[iter]) {
-            while (--iter >= 0) free(mat->data[iter]);
-            free(mat->data);
-            free(mat);
-            return NULL;
-        }
-    }
-    return mat;
+Matrix *subtract_matrices(const Matrix *A, const Matrix *B) {
+    if (!A || !B || A->rows != B->rows || A->cols != B->cols) return NULL;
+    Matrix *result = create_matrix(A->rows, A->cols);
+    if (!result) return NULL;
+    for (size_t row = 0; row < (size_t)A->rows; row++)
+        for (size_t col = 0; col < (size_t)A->cols; col++)
+            result->data[row][col] = A->data[row][col] - B->data[row][col];
+    return result;
 }
 
-void free_matrix(Matrix *mat) {
-    if (!mat) return;
-    for (int iter = 0; iter < mat->rows; iter++)
-        free(mat->data[iter]);
-    free(mat->data);
-    free(mat);
+Matrix *dot_matrices(const Matrix *A, const Matrix *B) {
+    if (A->cols != B->rows) return NULL;
+    Matrix *res = create_matrix(A->rows, B->cols);
+    if (!res) return NULL;
+    for (int i = 0; i < A->rows; i++)
+        for (int j = 0; j < B->cols; j++)
+            for (int k = 0; k < A->cols; k++)
+                res->data[i][j] += A->data[i][k] * B->data[k][j];
+    return res;
 }
 
-void print_matrix(const Matrix *mat) {
-    for (int iter = 0; iter < mat->rows; iter++) {
-        for (int j = 0; j < mat->cols; j++)
-            printf("%8.2f ", mat->data[iter][j]);
-        printf("\n");
-    }
+Matrix *add_matrices(const Matrix *A, const Matrix *B) {
+    if (A->rows != B->rows || A->cols != B->cols) return NULL;
+    Matrix *res = create_matrix(A->rows, A->cols);
+    if (!res) return NULL;
+    for (int i = 0; i < A->rows; i++)
+        for (int j = 0; j < A->cols; j++)
+            res->data[i][j] = A->data[i][j] + B->data[i][j];
+    return res;
 }
 
-Matrix *transpose_matrix(const Matrix *mat) {
-    Matrix *transposed = create_matrix(mat->cols, mat->rows);
-    if (!transposed) return NULL;
-    for (int iter = 0; iter < mat->rows; iter++)
-        for (int j = 0; j < mat->cols; j++)
-            transposed->data[j][iter] = mat->data[iter][j];
-    return transposed;
+Matrix *compute_expression(const Matrix *A, const Matrix *B, const Matrix *C, const Matrix *D) {
+    Matrix *AT = transpose_matrix(A);
+    if (!AT) return NULL;
+    Matrix *ATB = dot_matrices(AT, B);
+    free_matrix(AT);
+    if (!ATB) return NULL;
+    Matrix *res = add_matrices(subtract_matrices(ATB, C), D);
+    free_matrix(ATB);
+    return res;
 }
 
-double sum_diagonal(const Matrix *mat) {
-    if (!mat || mat->rows != mat->cols) return 0;
-    double sum = 0;
-    for (int iter = 0; iter < mat->rows; iter++)
-        sum += mat->data[iter][iter];
-    return sum;
-}
-
-void fill_matrix(Matrix *mat, double value) {
-    if (!mat) return;
-    for (int iter = 0; iter < mat->rows; iter++)
-        for (int j = 0; j < mat->cols; j++)
-            mat->data[iter][j] = value;
-}
-
-Matrix *load_matrix(const char *filename) {
-    FILE *file = fopen(filename, "r");
-    if (!file) {
-        perror("Error opening file");
-        return NULL;
-    }
-
-    int rows, cols;
-    if (fscanf(file, "%d %d", &rows, &cols) != 2) {
-        perror("Invalid file format");
-        fclose(file);
-        return NULL;
-    }
-
-    Matrix *mat = create_matrix(rows, cols);
-    if (!mat) {
-        fclose(file);
-        return NULL;
-    }
-
-    for (int iter = 0; iter < rows; iter++)
-        for (int j = 0; j < cols; j++)
-            if (fscanf(file, "%lf", &mat->data[iter][j]) != 1) {
-                perror("Invalid matrix data");
-                free_matrix(mat);
-                fclose(file);
-                return NULL;
-            }
-
-    fclose(file);
-    return mat;
-}
