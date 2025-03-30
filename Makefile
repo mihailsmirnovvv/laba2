@@ -8,71 +8,53 @@ TEST_LIBS = -lcunit
 BUILD_DIR = build
 OBJ_DIR = $(BUILD_DIR)/objects
 EXEC_DIR = $(BUILD_DIR)/executables
-TESTS_DIR = tests
 SRC_DIR = src
 INCLUDE_DIR = include
+TESTS_DIR = tests
 
 SOURCES = $(wildcard $(SRC_DIR)/*.c)
 OBJECTS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SOURCES))
-
-# Исключаем main.o, чтобы он не попал в библиотеку
 OBJECTS := $(filter-out $(OBJ_DIR)/main.o, $(OBJECTS))
 
 LIBRARY = $(BUILD_DIR)/matrix.a
-TEST_EXEC = $(EXEC_DIR)/matrix_tests
 RUN_EXEC = $(EXEC_DIR)/matrix_run
+TEST_EXEC = $(EXEC_DIR)/matrix_tests
 
 all: $(LIBRARY)
 
 $(LIBRARY): $(BUILD_DIR) $(OBJECTS)
-	@mkdir -p $(dir $@)
 	ar -rcs $@ $(OBJECTS)
 
-run: clean $(LIBRARY) $(OBJ_DIR)/main.o
-	@mkdir -p $(EXEC_DIR)
-	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) $(OBJ_DIR)/main.c $(LIBRARY) -o $(RUN_EXEC) $(LIBS)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -c $< -o $@
+
+run: clean $(LIBRARY) $(OBJ_DIR)/main.o | $(EXEC_DIR)
+	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) $(OBJ_DIR)/main.o $(LIBRARY) -o $(RUN_EXEC) $(LIBS)
 	./$(RUN_EXEC)
 
-# Компиляция объектов
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -c $< -o $@
-
-# Создание папки build
-$(BUILD_DIR):
-	@mkdir -p $(BUILD_DIR)
-
-# Запуск тестов
 test: CFLAGS += -I$(INCLUDE_DIR)
-test: $(LIBRARY) $(TEST_EXEC)
+test: $(LIBRARY) $(OBJ_DIR)/test_matrix.o | $(EXEC_DIR)
+	$(CC) $(CFLAGS) $(OBJ_DIR)/test_matrix.o $(LIBRARY) -o $(TEST_EXEC) $(LIBS) $(TEST_LIBS)
 	./$(TEST_EXEC)
 
-$(TEST_EXEC): $(TEST_OBJECTS) $(LIBRARY)
-	@mkdir -p $(EXEC_DIR)
-	$(CC) $(CFLAGS) $(TEST_OBJECTS) $(LIBRARY) -o $@ $(LIBS) $(TEST_LIBS)
-
-$(OBJ_DIR)/tests/%.o: $(TESTS_DIR)/%.c
-	@mkdir -p $(dir $@)
+$(OBJ_DIR)/test_matrix.o: $(TESTS_DIR)/test_matrix.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -c $< -o $@
 
-# Проверка утечек памяти
+$(BUILD_DIR) $(OBJ_DIR) $(EXEC_DIR):
+	@mkdir -p $@
+
 valgrind: $(TEST_EXEC)
 	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all ./$(TEST_EXEC)
 
-# Анализ кода
 cppcheck:
-	cppcheck --enable=all --std=c11 -I$(INCLUDE_DIR) $(SOURCES) \
-	--suppress=missingIncludeSystem --suppress=unusedFunction --error-exitcode=1
+	cppcheck --enable=all --std=c11 -I$(INCLUDE_DIR) $(SOURCES) --suppress=missingIncludeSystem --suppress=unusedFunction --error-exitcode=1
 
-# Форматирование кода
 format:
 	@clang-format -i $(wildcard src/*.c) $(wildcard include/*.h)
 
-# Генерация документации
 docs:
-	doxygen Doxyfile
+	doxygen docs/Doxyfile
 
-# Очистка
 clean:
 	rm -rf $(BUILD_DIR)
 

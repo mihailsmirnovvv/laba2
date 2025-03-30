@@ -1,45 +1,58 @@
 #include "matrix.h"
-#include <stdio.h>
+#include <stdlib.h>
 
-Matrix *subtract_matrices(const Matrix *A, const Matrix *B) {
-    if (!A || !B || A->rows != B->rows || A->cols != B->cols) return NULL;
-    Matrix *result = create_matrix(A->rows, A->cols);
-    if (!result) return NULL;
-    for (size_t row = 0; row < (size_t)A->rows; row++)
-        for (size_t col = 0; col < (size_t)A->cols; col++)
-            result->data[row][col] = A->data[row][col] - B->data[row][col];
-    return result;
+/**
+ * @brief Создает новую матрицу заданного размера.
+ * @param rows Количество строк.
+ * @param cols Количество столбцов.
+ * @return Указатель на созданную матрицу или NULL в случае ошибки.
+ */
+Matrix *create_matrix(size_t rows, size_t cols) {
+    Matrix *mat = (Matrix *)malloc(sizeof(Matrix));
+    if (!mat) return NULL;
+    mat->rows = rows;
+    mat->cols = cols;
+    mat->data = (double **)malloc(rows * sizeof(double *));
+    if (!mat->data) {
+        free(mat);
+        return NULL;
+    }
+    for (size_t iter = 0; iter < rows; iter++) {
+        mat->data[iter] = (double *)calloc(cols, sizeof(double));
+        if (!mat->data[iter]) {
+            for (size_t jter = 0; jter < iter; jter++)
+                free(mat->data[jter]);
+            free(mat->data);
+            free(mat);
+            return NULL;
+        }
+    }
+    return mat;
 }
 
-Matrix *dot_matrices(const Matrix *A, const Matrix *B) {
-    if (A->cols != B->rows) return NULL;
-    Matrix *res = create_matrix(A->rows, B->cols);
+/**
+ * @brief Освобождает память, выделенную под матрицу.
+ * @param mat Указатель на матрицу.
+ */
+void free_matrix(Matrix *mat) {
+    if (!mat) return;
+    for (size_t iter = 0; iter < mat->rows; iter++)
+        free(mat->data[iter]);
+    free(mat->data);
+    free(mat);
+}
+
+/**
+ * @brief Транспонирует матрицу.
+ * @param A Исходная матрица.
+ * @return Новая транспонированная матрица или NULL в случае ошибки.
+ */
+Matrix *transpose_matrix(const Matrix *A) {
+    if (!A) return NULL;
+    Matrix *res = create_matrix(A->cols, A->rows);
     if (!res) return NULL;
-    for (int i = 0; i < A->rows; i++)
-        for (int j = 0; j < B->cols; j++)
-            for (int k = 0; k < A->cols; k++)
-                res->data[i][j] += A->data[i][k] * B->data[k][j];
+    for (size_t iter = 0; iter < A->rows; iter++)
+        for (size_t jter = 0; jter < A->cols; jter++)
+            res->data[jter][iter] = A->data[iter][jter];
     return res;
 }
-
-Matrix *add_matrices(const Matrix *A, const Matrix *B) {
-    if (A->rows != B->rows || A->cols != B->cols) return NULL;
-    Matrix *res = create_matrix(A->rows, A->cols);
-    if (!res) return NULL;
-    for (int i = 0; i < A->rows; i++)
-        for (int j = 0; j < A->cols; j++)
-            res->data[i][j] = A->data[i][j] + B->data[i][j];
-    return res;
-}
-
-Matrix *compute_expression(const Matrix *A, const Matrix *B, const Matrix *C, const Matrix *D) {
-    Matrix *AT = transpose_matrix(A);
-    if (!AT) return NULL;
-    Matrix *ATB = dot_matrices(AT, B);
-    free_matrix(AT);
-    if (!ATB) return NULL;
-    Matrix *res = add_matrices(subtract_matrices(ATB, C), D);
-    free_matrix(ATB);
-    return res;
-}
-
