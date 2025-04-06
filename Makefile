@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS = -std=c11 -Wall -Wextra -Werror -g
-ASAN_FLAGS = -fsanitize=address
+CFLAGS = -std=c11 -Wall -Wextra -Werror
+ASAN_FLAGS = -fsanitize=address -g
 
 LIBS = -lm
 TEST_LIBS = -lcunit
@@ -8,54 +8,66 @@ TEST_LIBS = -lcunit
 BUILD_DIR = build
 OBJ_DIR = $(BUILD_DIR)/objects
 EXEC_DIR = $(BUILD_DIR)/executables
-SRC_DIR = src
-INCLUDE_DIR = include
 TESTS_DIR = tests
+SRC_DIR = src
+SRC_DIRS = $(SRC_DIR)/matrix $(SRC_DIR)/output
+INCLUDE_DIR = include
 
-SOURCES = $(wildcard $(SRC_DIR)/*.c)
+SOURCES = $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.c))
 OBJECTS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SOURCES))
-OBJECTS := $(filter-out $(OBJ_DIR)/main.o, $(OBJECTS))
+TEST_SOURCES = $(TESTS_DIR)/all_tests.c
+TEST_OBJECTS = $(patsubst $(TESTS_DIR)/%.c, $(OBJ_DIR)/tests/%.o, $(TEST_SOURCES))
 
-LIBRARY = $(BUILD_DIR)/matrix.a
-RUN_EXEC = $(EXEC_DIR)/matrix_run
+TARGET = $(BUILD_DIR)/matrix.a
 TEST_EXEC = $(EXEC_DIR)/matrix_tests
 
-all: $(LIBRARY)
+all: $(TARGET)
 
-$(LIBRARY): $(BUILD_DIR) $(OBJECTS)
+main: clean $(TARGET)
+	$(CC) $(CFLAGS) $(SRC_DIR)/main.c $(TARGET) -o main $(LIBS)
+	./main
+	@rm main
+
+$(TARGET): $(BUILD_DIR) $(OBJECTS)
 	ar -rcs $@ $(OBJECTS)
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
-	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -c $< -o $@
-
-run: clean $(LIBRARY) $(OBJ_DIR)/main.o | $(EXEC_DIR)
-	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) $(OBJ_DIR)/main.o $(LIBRARY) -o $(RUN_EXEC) $(LIBS)
-	./$(RUN_EXEC)
-
 test: CFLAGS += -I$(INCLUDE_DIR)
-test: $(LIBRARY) $(OBJ_DIR)/test_matrix.o | $(EXEC_DIR)
-	$(CC) $(CFLAGS) $(OBJ_DIR)/test_matrix.o $(LIBRARY) -o $(TEST_EXEC) $(LIBS) $(TEST_LIBS)
+test: $(TARGET) $(TEST_EXEC)
 	./$(TEST_EXEC)
+	@rm -f test_matrix.txt
 
-$(OBJ_DIR)/test_matrix.o: $(TESTS_DIR)/test_matrix.c | $(OBJ_DIR)
+$(TEST_EXEC): $(TEST_OBJECTS) $(TARGET)
+	@mkdir -p $(EXEC_DIR)
+	$(CC) $(CFLAGS) $^ -o $@ $(LIBS) $(TEST_LIBS)
+
+$(OBJ_DIR)/tests/%.o: $(TESTS_DIR)/%.c
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -c $< -o $@
 
-$(BUILD_DIR) $(OBJ_DIR) $(EXEC_DIR):
-	@mkdir -p $@
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -c $< -o $@
+
+$(BUILD_DIR):
+	@mkdir -p $(BUILD_DIR)
 
 valgrind: $(TEST_EXEC)
 	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all ./$(TEST_EXEC)
+	@rm -f $(TEST_EXEC) test_matrix.txt
 
 cppcheck:
-	cppcheck --enable=all --std=c11 -I$(INCLUDE_DIR) $(SOURCES) --suppress=missingIncludeSystem --suppress=unusedFunction --error-exitcode=1
+	cppcheck --enable=all --std=c11 -I$(INCLUDE_DIR) $(SOURCES) \
+	--suppress=missingIncludeSystem --suppress=unusedFunction --suppress=checkersReport --error-exitcode=1
 
 format:
-	@clang-format -i $(wildcard src/*.c) $(wildcard include/*.h)
+	@clang-format -i $$(find . -name "*.c")
+	@clang-format -i $$(find . -name "*.h")
 
 docs:
-	doxygen docs/Doxyfile
+	doxygen Doxyfile
 
 clean:
 	rm -rf $(BUILD_DIR)
 
-.PHONY: all run test clean valgrind cppcheck format docs
+.PHONY: all test clean valgrind cppcheck docs
+
