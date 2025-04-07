@@ -23,7 +23,7 @@ TEST_EXEC = $(EXEC_DIR)/matrix_tests
 
 all: $(TARGET)
 
-main: clean $(TARGET)
+run: clean $(TARGET)
 	$(CC) $(CFLAGS) $(SRC_DIR)/main.c $(TARGET) -o main $(LIBS)
 	./main
 	@rm main
